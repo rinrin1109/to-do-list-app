@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do List App</title>
+<style>
+  /* ===== RESET & DASAR ===== */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px;
+  }
+
+  /* ===== KARTU UTAMA ===== */
+  .container {
+    background: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    padding: 32px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 28px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* ===== FORM INPUT ===== */
+  .input-area {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  #taskInput {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #taskInput:focus {
+    border-color: #764ba2;
+  }
+
+  #addBtn {
+    padding: 12px 20px;
+    background: #764ba2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  #addBtn:hover {
+    background: #667eea;
+  }
+
+  /* ===== FILTER TOMBOL ===== */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .filter-btn {
+    flex: 1;
+    padding: 8px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #666;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active {
+    background: #764ba2;
+    color: white;
+  }
+
+  /* ===== DAFTAR TUGAS ===== */
+  #taskList {
+    list-style: none;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    border-bottom: 1px solid #f0f0f0;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .task-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #764ba2;
+  }
+
+  .task-text {
+    flex: 1;
+    font-size: 15px;
+    color: #333;
+    word-break: break-word;
+  }
+
+  .task-text.completed {
+    text-decoration: line-through;
+    color: #aaa;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+
+  .delete-btn:hover {
+    background: #ffe0e0;
+  }
+
+  /* ===== STATUS KOSONG ===== */
+  .empty-state {
+    text-align: center;
+    color: #bbb;
+    padding: 32px 0;
+    font-size: 14px;
+  }
+
+  /* ===== FOOTER INFO ===== */
+  .footer-info {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📝 To-Do List</h1>
+  <p class="subtitle">Portofolio pertama - dibuat dengan HTML, CSS, JS</p>
+
+  <!-- Form buat nambah tugas baru -->
+  <div class="input-area">
+    <input type="text" id="taskInput" placeholder="Tulis tugas baru..." />
+    <button id="addBtn">Tambah</button>
+  </div>
+
+  <!-- Tombol filter -->
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">Semua</button>
+    <button class="filter-btn" data-filter="active">Belum Selesai</button>
+    <button class="filter-btn" data-filter="completed">Selesai</button>
+  </div>
+
+  <!-- Daftar tugas akan muncul di sini -->
+  <ul id="taskList"></ul>
+
+  <p class="footer-info" id="taskCount"></p>
+</div>
+
+<script>
+  // ===== AMBIL ELEMEN DARI HTML =====
+  const taskInput = document.getElementById('taskInput');
+  const addBtn = document.getElementById('addBtn');
+  const taskList = document.getElementById('taskList');
+  const taskCount = document.getElementById('taskCount');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+
+  // ===== STATE / DATA =====
+  // Ambil data dari localStorage (biar nggak hilang saat browser ditutup)
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+  let currentFilter = 'all';
+
+  // ===== FUNGSI: SIMPAN KE LOCALSTORAGE =====
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  // ===== FUNGSI: TAMPILKAN TUGAS KE LAYAR =====
+  function renderTasks() {
+    taskList.innerHTML = '';
+
+    // Filter tugas sesuai tombol yang dipilih
+    let filteredTasks = tasks;
+    if (currentFilter === 'active') {
+      filteredTasks = tasks.filter(t => !t.completed);
+    } else if (currentFilter === 'completed') {
+      filteredTasks = tasks.filter(t => t.completed);
+    }
+
+    // Kalau kosong, tampilkan pesan
+    if (filteredTasks.length === 0) {
+      taskList.innerHTML = '<li class="empty-state">Belum ada tugas di sini 🎈</li>';
+    } else {
+      filteredTasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+          <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} data-id="${task.id}">
+          <span class="task-text ${task.completed ? 'completed' : ''}">${escapeHtml(task.text)}</span>
+          <button class="delete-btn" data-id="${task.id}">✕</button>
+        `;
+        taskList.appendChild(li);
+      });
+    }
+
+    // Update jumlah tugas yang belum selesai
+    const remaining = tasks.filter(t => !t.completed).length;
+    taskCount.textContent = tasks.length === 0
+      ? ''
+      : `${remaining} tugas belum selesai dari total ${tasks.length}`;
+  }
+
+  // Fungsi kecil buat mencegah HTML asing disuntikkan ke halaman
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ===== FUNGSI: TAMBAH TUGAS BARU =====
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (text === '') return; // jangan tambah kalau kosong
+
+    tasks.push({
+      id: Date.now(), // ID unik pakai timestamp
+      text: text,
+      completed: false
+    });
+
+    taskInput.value = '';
+    saveTasks();
+    renderTasks();
+  }
+
+  // ===== EVENT: TOMBOL TAMBAH DIKLIK =====
+  addBtn.addEventListener('click', addTask);
+
+  // ===== EVENT: TEKAN ENTER DI INPUT =====
+  taskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  // ===== EVENT: KLIK DI DALAM DAFTAR TUGAS (checkbox / hapus) =====
+  taskList.addEventListener('click', (e) => {
+    const id = Number(e.target.dataset.id);
+
+    if (e.target.classList.contains('task-checkbox')) {
+      // Toggle status selesai/belum
+      const task = tasks.find(t => t.id === id);
+      task.completed = !task.completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    if (e.target.classList.contains('delete-btn')) {
+      // Hapus tugas dari array
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+    }
+  });
+
+  // ===== EVENT: TOMBOL FILTER =====
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderTasks();
+    });
+  });
+
+  // ===== TAMPILKAN TUGAS SAAT PERTAMA KALI DIBUKA =====
+  renderTasks();
+</script>
+
+</body>
+</html>
